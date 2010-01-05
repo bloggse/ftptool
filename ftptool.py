@@ -55,10 +55,10 @@ A `os.walk` interface is implemented for walking the directory tree:
 
 >>> for (dirname, subdirs, files) in a_host.walk("/a_dir"):
 ...     print dirname, "has file(s)", ", ".join(files)
-... 
+...
 /a_dir has file(s) foo, bar
 /a_dir/other_dir has file(s) hello
-/a_dir/some_dir has file(s) 
+/a_dir/some_dir has file(s)
 
 Just like `os.walk`, you can remove entries in the `subdirs` list to avoid
 descending into them:
@@ -68,9 +68,9 @@ descending into them:
 ...         if subdir.startswith("other_"):
 ...             subdirs.remove(subdir)
 ...     print dirname, "has file(s)", ", ".join(files)
-...     
+...
 /a_dir has file(s) foo, bar
-/a_dir/some_dir has file(s) 
+/a_dir/some_dir has file(s)
 
 You can non-recursively list a directory using `listdir`:
 
@@ -182,6 +182,7 @@ If the local working directory is the one you want to upload, you can just give
 __docformat__ = "reStructuredText"
 
 import os
+import re
 from os import path
 try:
     from cStringIO import StringIO
@@ -320,7 +321,7 @@ class FTPHost(object):
     def mirror_to_remote(self, source, destination, create_destination=False,
             ignore_dotfiles=True):
         """Upload local directory `source` to remote destination `destination`.
-        
+
         Create destination directory only if `create_destination` is True, and
         don't upload or descend into files or directories starting with a dot
         if `ignore_dotfiles` is True.
@@ -415,6 +416,22 @@ class FTPHost(object):
             except ftplib.Error, e:
                 pass
 
+    def regex_find(self, regex, directory=None):
+        """
+        Find files matching a regular expression.
+        Returns list of FTPFileProxy objects with filenames matching regex.
+        """
+        if not directory:
+            directory = self.current_directory
+        regex = re.compile(regex)
+        fp = []
+        for _dir, subdirs, files in self.walk(directory):
+            for f in files:
+                if regex.search(f):
+                    fp.append(self.file_proxy("%s/%s" % (_dir, f)))
+        return fp
+
+
     def quit(self):
         """Send quit command and close connection."""
         self.ftp_obj.quit()
@@ -460,6 +477,7 @@ class FTPFileClient(FTPHost):
     def mdelete(self, filenames):
         return self._apply_all(self.delete, filenames)
     # }}}
+
 
 class ExtensionMappedFTPHost(FTPHost):
     """Takes a mapping of extensions to rewrite to another extension.  An
@@ -526,7 +544,7 @@ class FTPFileProxy(object):
             self.download(fp)
         finally:
             fp.close()
-    
+
     def delete(self):
         """Delete file."""
         self.ftp_obj.delete(self.filename)
