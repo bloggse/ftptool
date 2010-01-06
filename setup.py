@@ -10,7 +10,7 @@ try:
 finally:
     f.close()
 
-setup(name="ftptool", version="0.2",
+setup(name="ftptool", version="0.3",
     url="http://blogg.se",
     description="Higher-level interface to ftplib",
     author="Blogg Esse AB",

@@ -289,5 +289,8 @@ drwxr-xr-x   38 1344     1346         4096 May 11 20:48 x_dir
 
 if __name__ == "__main__":
     import doctest
-    doctest.testmod()
-    unittest.main()
+    import sys
+    res1 = doctest.testmod()
+    res2 = unittest.main()
+    if res1[0] or not res2.wasSuccessful():
+        sys.exit(1)
