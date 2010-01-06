@@ -171,7 +171,6 @@ If the local working directory is the one you want to upload, you can just give
 __docformat__ = "reStructuredText"
 
 import os
-import re
 from os import path
 try:
     from cStringIO import StringIO
@@ -404,22 +403,6 @@ class FTPHost(object):
                 self.mkdir(cdir)
             except ftplib.Error, e:
                 pass
-
-    def regex_find(self, regex, directory=None):
-        """
-        Find files matching a regular expression.
-        Returns list of FTPFileProxy objects with filenames matching regex.
-        """
-        if not directory:
-            directory = self.current_directory
-        regex = re.compile(regex)
-        fp = []
-        for _dir, subdirs, files in self.walk(directory):
-            for f in files:
-                if regex.search(f):
-                    fp.append(self.file_proxy("%s/%s" % (_dir, f)))
-        return fp
-
 
     def quit(self):
         """Send quit command and close connection."""
