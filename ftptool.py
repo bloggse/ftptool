@@ -1,11 +1,10 @@
 import os
 import re
-from os import path
+import posixpath as path
 try:
     from cStringIO import StringIO
 except:
     from StringIO import StringIO
-import posixpath
 import socket
 import ftplib
 
