@@ -238,7 +238,7 @@ class FTPHost(object):
     def file_proxy(self, filename):
         """Creates a file proxy object for filename. See FTPFileProxy."""
         return FTPFileProxy(self.ftp_obj,
-            path.join(self.current_directory, filename))
+            posixpath.join(self.current_directory, filename))
 
     def get_current_directory(self):
         if not hasattr(self, "_cwd"):
@@ -262,7 +262,7 @@ class FTPHost(object):
         yield (directory, subdirs, files)
         # Recurse subdirs.
         for subdir in subdirs:
-            for x in self.walk(path.join(directory, subdir)):
+            for x in self.walk(posixpath.join(directory, subdir)):
                 yield x
 
     def listdir(self, directory):
@@ -303,7 +303,7 @@ class FTPHost(object):
             # Download all files in current directory.
             for filename in files:
                 target_file = path.join(current_destination, filename)
-                remote_file = path.join(source, current_dir, filename)
+                remote_file = posixpath.join(source, current_dir, filename)
                 self.file_proxy(remote_file).download_to_file(target_file)
 
     def mirror_to_remote(self, source, destination, create_destination=False,
@@ -335,10 +335,10 @@ class FTPHost(object):
             # See mirror_to_local for the census of special-casing the empty
             # string.
             if source:
-                remote_dest_dir = path.join(destination,
+                remote_dest_dir = posixpath.join(destination,
                     current_dir[len(source) + 1:])
             else:
-                remote_dest_dir = path.join(destination, current_dir)
+                remote_dest_dir = posixpath.join(destination, current_dir)
 
             # Clean subdirs & files from dotfiles if wanted - some FTP daemons
             # hate dotfiles.
@@ -359,22 +359,22 @@ class FTPHost(object):
                 # Ignore FTP exceptions here because if they're fatal, we'll
                 # get it later when we upload.
                 try:
-                    self.mkdir(path.join(remote_dest_dir, subdir))
+                    self.mkdir(posixpath.join(remote_dest_dir, subdir))
                 except ftplib.Error, e:
                     pass
 
             # Upload all files.
             for filename in files:
                 local_source_file = path.join(current_dir, filename)
-                remote_dest_file = path.join(remote_dest_dir, filename)
+                remote_dest_file = posixpath.join(remote_dest_dir, filename)
                 f = self.file_proxy(remote_dest_file)
                 f.upload_from_file(local_source_file)
 
-    def makedirs(self, path):
-        """Try to create directories out of each part of `path`.
+    def makedirs(self, dpath):
+        """Try to create directories out of each part of `dpath`.
 
-        First tries to change directory into `path`, to see if it exists. If it
-        does, returns immediately. Otherwise, splits `path` up into parts,
+        First tries to change directory into `dpath`, to see if it exists. If
+        it does, returns immediately. Otherwise, splits `dpath` up into parts,
         trying to create each accumulated part as a directory.
         """
         # First try to chdir to the target directory, to skip excess attempts
@@ -382,7 +382,7 @@ class FTPHost(object):
         # off a piece and try again, recursively.
         pwd = self.current_directory
         try:
-            self.current_directory = path
+            self.current_directory = dpath
         except ftplib.Error:
             pass
         else:
@@ -390,7 +390,7 @@ class FTPHost(object):
         finally:
             self.current_directory = pwd
         # Then if we're still alive, split the path up.
-        parts = path.split("/")
+        parts = dpath.split(posixpath.sep)
         # Then iterate through the parts.
         cdir = ""
         for dir in parts:
@@ -523,6 +523,6 @@ class FTPFileProxy(object):
 
     def rename(self, new_name):
         """Rename file to new_name, and return an instance of that file."""
-        new_abs_name = path.join(path.dirname(self.filename), new_name)
+        new_abs_name = posixpath.join(path.dirname(self.filename), new_name)
         self.ftp_obj.rename(self.filename, new_abs_name)
         return self.__class__(self.ftp_obj, new_abs_name)
