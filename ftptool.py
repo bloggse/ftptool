@@ -12,14 +12,7 @@ Code says more than words, so let's look at an example: connecting.
 >>> a_host = FTPHost.connect("ftp.python.org", user="foo", password="bar")
 
 `connect` is a classmethod that lets you create an `FTPHost` instance with an
-underlying `ftplib.FTP` instance. You don't have to use it, or only partially
-use it:
-
->>> a_host = FTPHost.connect("ftp.python.org")
->>> a_host.login("foo", "bar")
-
-Obviously, if a host doesn't require logging in, you can just skip doing it at
-all.
+underlying `ftplib.FTP` instance. 
 
 Working with Directories
 ========================
@@ -174,10 +167,6 @@ destination.
 If the local working directory is the one you want to upload, you can just give
 `mirror_to_remote` an empty string or a dot:
 """
-
-# XXX Remove usage of os.path. It'll bork on Windows, hard. Instead, we should
-# use posixpath as it always uses /, but not everywhere as we use the local
-# filesystem at times, and we need to translate those paths back and forth.
 
 __docformat__ = "reStructuredText"
 
@@ -448,7 +437,7 @@ class FTPHost(object):
             self.close()
 
 class FTPFileClient(FTPHost):
-    """Class for emulating an FTP client, that is, get & put files to and fro.
+    """Class for emulating an FTP client, that is, get & put files to and from.
     """
 
     def _apply_all(self, filenames, f):
