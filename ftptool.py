@@ -1,11 +1,13 @@
 import os
+import posixpath
+import socket
+import ftplib
 from os import path
+
 try:
     from cStringIO import StringIO
 except:
     from StringIO import StringIO
-import socket
-import ftplib
 
 socket._no_timeoutsocket = socket.socket
 timeoutsocket = None
