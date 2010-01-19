@@ -84,6 +84,10 @@ class FTPHost(object):
         """Make directory."""
         self.ftp_obj.mkd(directory)
 
+    def rmdir(self, directory):
+        """Remove directory."""
+        self.ftp_obj.rmd(directory)
+
     def walk(self, directory):
         """Emulates os.walk very well, even the caveats."""
         (subdirs, files) = self.listdir(directory)
