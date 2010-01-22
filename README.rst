@@ -113,18 +113,22 @@ The Three Upload & Download Methods
 * and the default: using a file-like object.
 
 Given:
+
 >>> f = a_host.file_proxy("/foo.txt")
 
 You could upload and download from str using these two:
+
 >>> f.upload_from_str("Hi!")
 >>> f.download_to_str()
 'Hi!'
 
 And using a filename like this:
+
 >>> f.upload_from_file("/etc/motd")
 >>> f.download_to_file("/tmp/motd")
 
 And lastly, using file-like objects:
+
 >>> f.upload(StringIO("Test!"))
 >>> fp = StringIO()
 >>> f.download(fp)
