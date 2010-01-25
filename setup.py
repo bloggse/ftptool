@@ -1,14 +1,8 @@
 from distutils.core import setup
 import os
 
-f = open("README.rst")
-try:
-    try:
-        readme_text = f.read()
-    except:
-        readme_text = ""
-finally:
-    f.close()
+readme_fname = os.path.join(os.path.dirname(__file__), "README.rst")
+readme_text = open(readme_fname).read()
 
 setup(name="ftptool", version="0.4",
     url="http://blogg.se",
