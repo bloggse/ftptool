@@ -103,13 +103,21 @@ class FTPHost(object):
         the current working directory. The return value is a two-tuple of
         (dirs, files).
         """
+        if not directory.endswith("/"):
+            directory += "/"
         # Get files and directories.
-        flist = []
-        self.ftp_obj.dir(directory, flist.append)
-        flist = [x.split() for x in flist]
+        fnames = [x.replace(directory, "")
+                  for x in self.ftp_obj.nlst(directory)]
         # Sort to lists.
-        subdirs = [x[-1] for x in flist if x[0].startswith('d')]
-        files = [x[-1] for x in flist if x[0].startswith('-')]
+        subdirs = []
+        files = []
+        for f in fnames:
+            stat = self.ftp_obj.sendcmd(
+                "STAT %s%s" % (directory, f)).splitlines()[1]
+            if stat.startswith("d"):
+                subdirs.append(f)
+            elif stat.startswith("-"):
+                files.append(f)
         return (subdirs, files)
 
     def mirror_to_local(self, source, destination):
