@@ -113,11 +113,17 @@ class FTPHost(object):
         files = []
         for f in fnames:
             stat = self.ftp_obj.sendcmd(
-                "STAT %s%s" % (directory, f)).splitlines()[1]
-            if stat.startswith("d"):
-                subdirs.append(f)
-            elif stat.startswith("-"):
+                "STAT %s%s" % (directory, f)).splitlines()
+            # STAT for a file will only return data on the actual
+            # file, including FTP status reponses this turns into 3
+            # lines of response. STAT for a directory will return data
+            # on all files in that directory, which means at least data
+            # for the directories '.' and '..', making the response for
+            # directories always longer than the one for files.
+            if len(stat) == 3:
                 files.append(f)
+            else:
+                subdirs.append(f)
         return (subdirs, files)
 
     def mirror_to_local(self, source, destination):

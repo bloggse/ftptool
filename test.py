@@ -210,11 +210,20 @@ class ClientTest(unittest.TestCase):
         "200 Switching to ASCII mode.",
         "150 Here comes the directory listing.",
         "226 Directory send OK.",
+        # STAT for a_dir
         "213-Status follows:",
-        "drwxr-xr-x   38 1344     1346         4096 May 11 20:48 a_dir",
+        "drwxr-xr-x   38 1344     1346         4096 May 11 20:48 .",
+        "drwxr-xr-x   38 1344     1346         4096 May 11 20:48 ..",
+        "-rwxr-xr-x   38 1344     1346         4096 May 11 20:48 foo",
+        "-rwxr-xr-x   38 1344     1346         4096 May 11 20:48 bar",
         "213 End of status",
+        # STAT for x_dir
         "213-Status follows:",
-        "drwxr-xr-x   38 1344     1346         4096 May 11 20:48 x_dir",
+        "-rwxr-xr-x   38 1344     1346         4096 May 11 20:48 hello",
+        "drwxr-xr-x   38 1344     1346         4096 May 11 20:48 .",
+        "drwxr-xr-x   38 1344     1346         4096 May 11 20:48 ..",
+        "-rwxr-xr-x   38 1344     1346         4096 May 11 20:48 world",
+
         "213 End of status",
         "213-Status follows:",
         "-rwxr-xr-x   38 1344     1346         4096 May 11 20:48 test",
