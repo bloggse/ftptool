@@ -27,7 +27,7 @@ class PhonyFTPClient(object, ftplib.FTP):
     attribute *input_commands*. It is a list, and you can simply append to it
     in the usual way. When that list is exhausted, it should be equivalent of
     the other side disconnecting.
-    
+
     Create the client object, we could pass connection parameters here.
     >>> c = PhonyFTPClient()
 
@@ -200,41 +200,45 @@ class ClientTest(unittest.TestCase):
         self.assertEqual(dc.closed, True)
 
     def test_walk(self):
-        # Make two data channels, the latter being the subdirectory 'a_dir' of
-        # the first one.
-        dir_listings = map(PhonyDataChannel, ("""\
-drwxr-xr-x   38 1344     1346         4096 May 11 20:48 a_dir
-drwxr-xr-x   38 1344     1346         4096 May 11 20:48 x_dir
--rw-r--r--    1 0        0               4 Jul  9 12:32 test
-""", """\
--rw-r--r--    1 0        0              10 Jul  9 12:32 foo
--rw-r--r--    1 0        0               4 Jan 31 13:37 bar
-""", """\
--rw-r--r--    1 0        0              10 Jul  9 12:32 hello
--rw-r--r--    1 0        0               4 Jan 31 13:37 world
-"""
-))
-        # Push onto the DC stack.
-        self.client.data_channels.extend(dir_listings)
+        # Make three data channels, the latter being the
+        # subdirectories 'a_dir' and 'x_dir" of the first one.
+        self.client.data_channels.extend(
+            [PhonyDataChannel(x) for x in
+             ("a_dir\nx_dir\ntest\n", "foo\nbar\n", "hello\nworld\n")])
         # Add the proper replies.
         self.client.input_commands.extend((
-            "200 TYPE is now ASCII",
-            "227 Entering passive mode (1,2,3,4,5,6)",
-            "150 Accepted connection",
-            "226-Options: -l ",
-            "226 2 matches total",
-            # Second transfer.
-            "200 TYPE is now ASCII",
-            "227 Entering passive mode (1,2,3,4,5,6)",
-            "150 Accepted connection",
-            "226-Options: -l ",
-            "226 2 matches total"
-            # Third transfer.
-            "200 TYPE is now ASCII",
-            "227 Entering passive mode (1,2,3,4,5,6)",
-            "150 Accepted connection",
-            "226-Options: -l ",
-            "226 2 matches total"
+        "200 Switching to ASCII mode.",
+        "150 Here comes the directory listing.",
+        "226 Directory send OK.",
+        "213-Status follows:",
+        "drwxr-xr-x   38 1344     1346         4096 May 11 20:48 a_dir",
+        "213 End of status",
+        "213-Status follows:",
+        "drwxr-xr-x   38 1344     1346         4096 May 11 20:48 x_dir",
+        "213 End of status",
+        "213-Status follows:",
+        "-rwxr-xr-x   38 1344     1346         4096 May 11 20:48 test",
+        "213 End of status",
+        # Second NLST call
+        "200 Switching to ASCII mode.",
+        "150 Here comes the directory listing.",
+        "226 Directory send OK.",
+        "213-Status follows:",
+        "-rwxr-xr-x   38 1344     1346         4096 May 11 20:48 foo",
+        "213 End of status",
+        "213-Status follows:",
+        "-rwxr-xr-x   38 1344     1346         4096 May 11 20:48 bar",
+        "213 End of status",
+        # Third NLST call
+        "200 Switching to ASCII mode.",
+        "150 Here comes the directory listing.",
+        "226 Directory send OK.",
+        "213-Status follows:",
+        "-rwxr-xr-x   38 1344     1346         4096 May 11 20:48 hello",
+        "213 End of status",
+        "213-Status follows:",
+        "-rwxr-xr-x   38 1344     1346         4096 May 11 20:48 world",
+        "213 End of status"
         ))
         x = []
         for (dirname, sdrs, files) in self.host.walk("/"):
