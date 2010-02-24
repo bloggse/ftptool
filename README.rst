@@ -1,12 +1,14 @@
-=======
-ftptool
-=======
+=========
+ ftptool
+=========
 
 Higher-level ftplib
 
 `ftplib` in itself is a bit raw, as it leaves details about the protocol for
 the user to handle. `ftptool` abstracts that away, and even provides a neat
 interface for file management.
+
+.. note:: ftptool requires Python 2.5 or later.
 
 Connecting & Authenticating
 ===========================

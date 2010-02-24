@@ -3,6 +3,7 @@ import posixpath
 import socket
 import ftplib
 from os import path
+from functools import partial
 
 try:
     from cStringIO import StringIO
@@ -16,6 +17,28 @@ try:
 except ImportError, e:
     from warnings import warn
     warn("%s - socket timeouts disabled" % (e,))
+
+def _parse_list_line(line, files=[], subdirs=[], links=None):
+    """Parse *line* and insert into either *files* or *subdirs* depending on
+    whether the line is for a directory or not.
+
+    This is used as the callback to the ftplib.FTPConnection.dir callback.
+    """
+    dst = None
+    if line.startswith("d"):
+        dst = subdirs
+    elif line.startswith("-"):
+        dst = files
+    elif line.startswith("l"):
+        dst = links
+    else:
+        raise ValueError("unknown line type %r" % line[:1])
+    # No dst set for this type: ignore.
+    if dst is None:
+        return
+    parts = line.split(None, 8)
+    stat, name = parts[0], parts[-1]
+    dst.append(name)
 
 class FTPHost(object):
     """Represent a connection to a remote host.
@@ -98,33 +121,21 @@ class FTPHost(object):
             for x in self.walk(posixpath.join(directory, subdir)):
                 yield x
 
-    def listdir(self, directory):
+    def listdir(self, directory, links=False):
         """Returns a list of files and directories at `directory`, relative to
         the current working directory. The return value is a two-tuple of
         (dirs, files).
         """
-        if not directory.endswith("/"):
-            directory += "/"
-        # Get files and directories.
-        fnames = [x.replace(directory, "")
-                  for x in self.ftp_obj.nlst(directory)]
-        # Sort to lists.
-        subdirs = []
-        files = []
-        for f in fnames:
-            stat = self.ftp_obj.sendcmd(
-                "STAT %s%s" % (directory, f)).splitlines()
-            # STAT for a file will only return data on the actual
-            # file, including FTP status reponses this turns into 3
-            # lines of response. STAT for a directory will return data
-            # on all files in that directory, which means at least data
-            # for the directories '.' and '..', making the response for
-            # directories always longer than the one for files.
-            if len(stat) == 3:
-                files.append(f)
-            else:
-                subdirs.append(f)
-        return (subdirs, files)
+        directory = directory.rstrip("/")
+        kwds = dict(files=[], subdirs=[])
+        if links:
+            kwds["links"] = []
+        cb = partial(_parse_list_line, **kwds)
+        self.ftp_obj.dir(directory, cb)
+        if links:
+            return (kwds["subdirs"], kwds["files"], kwds["links"])
+        else:
+            return (kwds["subdirs"], kwds["files"])
 
     def mirror_to_local(self, source, destination):
         """Download remote directory found by source to destination."""

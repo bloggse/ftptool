@@ -21,6 +21,28 @@ class PhonyDataChannel(object):
     def close(self):
         self.closed = True
 
+class Listing(PhonyDataChannel):
+    @classmethod
+    def parse(cls, spec):
+        import shlex
+        lines = []
+        for part in shlex.split(spec):
+            tp, nam = part.split(":", 1)
+            parts = []
+            tp = dict(file="-", dir="d", link="l")[tp]
+            parts.append(tp + "rwxrwxr-x")
+            parts.append("123")
+            parts.append("123")
+            parts.append("123")
+            parts.append("123")
+            parts.append("123")
+            parts.append("123")
+            parts.append("123")
+            parts.append(nam)
+            lines.append(" ".join(parts))
+        lines.append("")
+        return cls("\n".join(lines))
+
 class PhonyFTPClient(object, ftplib.FTP):
     """A phony FTP client. It puts all sent commands into an instance attribute
     *sent_commands*, and expects to be able to read commands from an instance
@@ -112,6 +134,20 @@ class PhonyFTPClient(object, ftplib.FTP):
         super(PhonyFTPClient, self).login(user, passwd, acct)
         self.login_info = (user, passwd, acct)
 
+    def push_channel(self, channel, rest=["Nice."], type_="8-bit binary"):
+        self.data_channels.append(channel)
+        self.input_commands.extend((
+            "200 TYPE is now " + type_,
+            "200 PORT command successful",
+            "150 Connecting to data port"))
+        # Dash every 226-foo lines but the last to indicate end.
+        for m in rest[:-1]:
+            self.input_commands.append("226-" + m)
+        self.input_commands.append('226 ' + rest[-1])
+
+    def push_listing(self, spec):
+        return self.push_channel(Listing.parse(spec), "ASCII")
+
     def __str__(self):
         return "<%s connected_to=%r login_info=%r>" % (
             self.__class__.__name__, self.connected_to, self.login_info)
@@ -202,53 +238,9 @@ class ClientTest(unittest.TestCase):
     def test_walk(self):
         # Make three data channels, the latter being the
         # subdirectories 'a_dir' and 'x_dir" of the first one.
-        self.client.data_channels.extend(
-            [PhonyDataChannel(x) for x in
-             ("a_dir\nx_dir\ntest\n", "foo\nbar\n", "hello\nworld\n")])
-        # Add the proper replies.
-        self.client.input_commands.extend((
-        "200 Switching to ASCII mode.",
-        "150 Here comes the directory listing.",
-        "226 Directory send OK.",
-        # STAT for a_dir
-        "213-Status follows:",
-        "drwxr-xr-x   38 1344     1346         4096 May 11 20:48 .",
-        "drwxr-xr-x   38 1344     1346         4096 May 11 20:48 ..",
-        "-rwxr-xr-x   38 1344     1346         4096 May 11 20:48 foo",
-        "-rwxr-xr-x   38 1344     1346         4096 May 11 20:48 bar",
-        "213 End of status",
-        # STAT for x_dir
-        "213-Status follows:",
-        "-rwxr-xr-x   38 1344     1346         4096 May 11 20:48 hello",
-        "drwxr-xr-x   38 1344     1346         4096 May 11 20:48 .",
-        "drwxr-xr-x   38 1344     1346         4096 May 11 20:48 ..",
-        "-rwxr-xr-x   38 1344     1346         4096 May 11 20:48 world",
-
-        "213 End of status",
-        "213-Status follows:",
-        "-rwxr-xr-x   38 1344     1346         4096 May 11 20:48 test",
-        "213 End of status",
-        # Second NLST call
-        "200 Switching to ASCII mode.",
-        "150 Here comes the directory listing.",
-        "226 Directory send OK.",
-        "213-Status follows:",
-        "-rwxr-xr-x   38 1344     1346         4096 May 11 20:48 foo",
-        "213 End of status",
-        "213-Status follows:",
-        "-rwxr-xr-x   38 1344     1346         4096 May 11 20:48 bar",
-        "213 End of status",
-        # Third NLST call
-        "200 Switching to ASCII mode.",
-        "150 Here comes the directory listing.",
-        "226 Directory send OK.",
-        "213-Status follows:",
-        "-rwxr-xr-x   38 1344     1346         4096 May 11 20:48 hello",
-        "213 End of status",
-        "213-Status follows:",
-        "-rwxr-xr-x   38 1344     1346         4096 May 11 20:48 world",
-        "213 End of status"
-        ))
+        self.client.push_listing("dir:a_dir dir:x_dir file:test")
+        self.client.push_listing("file:foo file:bar")  # <- dir:a_dir
+        self.client.push_listing("file:gogolog file:foo")  # <- dir:x_dir
         x = []
         for (dirname, sdrs, files) in self.host.walk("/"):
             for sd in sdrs:
@@ -299,6 +291,32 @@ class ClientTest(unittest.TestCase):
              'MKD a_dir/hello/',
              'MKD a_dir/hello/world/',
              'MKD a_dir/hello/world/foo/'])
+
+    def test_list_space_filenames(self):
+        self.test_pwd()  # CASHA-CAPOW
+        self.client.push_channel(PhonyDataChannel("""
+-rw-r--r--    1 1000     users      158014 Jan  3 01:27 01869496c6.png
+-rw-r--r--    1 1000     users       16013 Dec 10 16:18 0196015a2b.png
+-rw-r--r--    1 1000     users       25966 Feb 18  2009 05-celeb.png
+-rw-r--r--    1 1000     users       32564 Jan 26 14:10 05d71b43d4.png
+-rw-r--r--    1 1000     users       95038 Feb 16 09:55 06353e180a.png
+-rw-r--r--    1 1000     users       55027 Dec 28 11:32 063e6a9d02.png
+-rw-r--r--    1 1000     users       40160 Jan 22 10:42 064ac43992.png
+drwxr-xr-x  115 1002     1004         4096 Feb 24 07:23 84
+drwxr-xr-x  116 1002     1004         4096 Feb 23 17:19 85
+drwxr-xr-x  136 1002     1004         4096 Feb 23 22:00 88
+drwxr-xr-x  121 1002     1004         4096 Feb 24 05:17 89
+drwxr-xr-x  153 1002     1004         4096 Jan 21 09:34 90
+drwxr-xr-x  126 1002     1004         4096 Feb 22 23:24 91
+drwxr-xr-x  135 1002     1004         4096 Feb 24 07:22 92
+drwxr-xr-x  136 1002     1004         4096 Feb 24 08:45 93 abc def
+lrwxrwxrwx    1 1000     users         306 Feb 24 13:59 hu nhu -> /non/abc ah
+""".lstrip()), "ASCII")
+        self.assertEqual(self.host.listdir(""),
+            (['84', '85', '88', '89', '90', '91', '92', '93 abc def'],
+             ['01869496c6.png', '0196015a2b.png', '05-celeb.png',
+              '05d71b43d4.png', '06353e180a.png', '063e6a9d02.png',
+              '064ac43992.png']))
 
 if __name__ == "__main__":
     import doctest
