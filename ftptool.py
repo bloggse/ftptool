@@ -7,16 +7,9 @@ from functools import partial
 
 try:
     from cStringIO import StringIO
-except:
+except ImportError:
     from StringIO import StringIO
 
-socket._no_timeoutsocket = socket.socket
-timeoutsocket = None
-try:
-    import timeoutsocket
-except ImportError, e:
-    from warnings import warn
-    warn("%s - socket timeouts disabled" % (e,))
 
 def _parse_list_line(line, files=[], subdirs=[], links=None):
     """Parse *line* and insert into either *files* or *subdirs* depending on
@@ -62,7 +55,7 @@ class FTPHost(object):
 
     @classmethod
     def connect(cls, host, port=21, user=None, password=None, account=None,
-            ftp_client=ftplib.FTP, debuglevel=0, timeout=None):
+                ftp_client=ftplib.FTP, debuglevel=0, timeout=None):
         """Connect to host, using port. If user is given, login with given
         user, password and account. The two latter can be None, in which case
         ftplib will set the password to 'anonymous@'. You can choose which
@@ -70,18 +63,14 @@ class FTPHost(object):
         """
         ftp_obj = ftp_client()
         ftp_obj.set_debuglevel(debuglevel)
-        # Hack alert: Make socket.socket be the timeoutsocket instead of the
-        # real socket.socket when a timeout is specified.
-        if timeout and not timeoutsocket:
-            raise ImportError("previously failed to import timeoutsocket")
-        elif timeout and timeoutsocket:
-            timeoutsocket.setDefaultSocketTimeout(timeout)
-            socket.socket = timeoutsocket.timeoutsocket
-        ftp_obj.connect(host, port)
-        # Then restore the real socket.socket and timeout.
-        socket.socket = socket._no_timeoutsocket
-        if timeoutsocket:
-            timeoutsocket.setDefaultSocketTimeout(None)
+        if timeout is not None:
+            old_timeout = socket.getdefaulttimeout()
+            socket.setdefaulttimeout(float(timeout))
+            ftp_obj.connect(host, port)
+            socket.setdefaulttimeout(old_timeout)
+        else:
+            ftp_obj.connect(host, port)
+
         # And log in.
         if user:
             ftp_obj.login(user, password, account)
@@ -218,7 +207,7 @@ class FTPHost(object):
                 # get it later when we upload.
                 try:
                     self.mkdir(posixpath.join(remote_dest_dir, subdir))
-                except ftplib.Error, e:
+                except ftplib.Error:
                     pass
 
             # Upload all files.
@@ -259,7 +248,7 @@ class FTPHost(object):
                 continue
             try:
                 self.mkdir(cdir)
-            except ftplib.Error, e:
+            except ftplib.Error:
                 pass
 
     def quit(self):
