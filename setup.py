@@ -4,7 +4,7 @@ import os
 readme_fname = os.path.join(os.path.dirname(__file__), "README.rst")
 readme_text = open(readme_fname).read()
 
-setup(name="ftptool", version="0.6",
+setup(name="ftptool", version="0.7.1",
       url="https://github.com/bloggse/ftptool",
       description="Higher-level interface to ftplib",
       author="Blogg Esse AB",
