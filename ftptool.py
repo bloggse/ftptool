@@ -5,11 +5,7 @@ import ftplib
 from os import path
 from functools import partial
 
-try:
-    from cStringIO import StringIO
-except ImportError:
-    from StringIO import StringIO
-
+import six
 
 def _parse_list_line(line, files=[], subdirs=[], links=None):
     """Parse *line* and insert into either *files* or *subdirs* depending on
@@ -336,7 +332,7 @@ class FTPFileProxy(object):
 
     def upload_from_str(self, v):
         """Upload file from contents in string v."""
-        self.upload(StringIO(v))
+        self.upload(six.BytesIO(v))
 
     def upload_from_file(self, filename):
         """Upload file from file identified by name filename."""
@@ -352,7 +348,7 @@ class FTPFileProxy(object):
 
     def download_to_str(self):
         """Download file and return its contents."""
-        fp = StringIO()
+        fp = six.BytesIO()
         self.download(fp)
         return fp.getvalue()
 
